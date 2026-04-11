@@ -59,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Start Uvicorn
 # --workers: set via WORKERS env var (default 1 for Railway free tier)
 # --loop uvloop: faster event loop (installed with uvicorn[standard])
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WORKERS:-1} --loop uvloop"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WORKERS:-1} --loop uvloop"]
