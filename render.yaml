@@ -10,6 +10,7 @@ services:
     name: skillbarter-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
   # API (Docker)
   - type: web
