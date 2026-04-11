@@ -1,0 +1,70 @@
+# ============================================================
+# Skill Barter API — .gitignore
+# ============================================================
+
+# ── Environment & Secrets ──────────────────────────────────
+.env
+.env.*
+!.env.example          # keep the example file in version control
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.venv/
+venv/
+env/
+ENV/
+
+# ── Testing ───────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+coverage.xml
+nosetests.xml
+test-results/
+
+# ── Type checking ─────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ── IDE ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Alembic ───────────────────────────────────────────────
+# Keep migration scripts, ignore only generated caches
+alembic/__pycache__/
+
+# ── Docker ────────────────────────────────────────────────
+.docker/
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Misc ──────────────────────────────────────────────────
+*.bak
+*.tmp
+.hypothesis/
+
+# ── Frontend ──────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/

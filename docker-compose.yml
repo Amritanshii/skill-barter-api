@@ -1,0 +1,115 @@
+# ============================================================
+# Skill Barter API — Docker Compose (Local Development)
+# ============================================================
+# Start everything:   docker-compose up -d
+# Stop everything:    docker-compose down
+# View logs:          docker-compose logs -f api
+# Run migrations:     docker-compose exec api alembic upgrade head
+# Open psql:          docker-compose exec postgres psql -U skillbarter skillbarter_db
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI Application ──────────────────────────────────
+  api:
+    build:
+      context: .
+      target: production         # use the production stage of Dockerfile
+    container_name: skillbarter_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://skillbarter:skillbarter_dev_password@postgres:5432/skillbarter_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - .:/app                   # hot-reload in dev (remove in production)
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ── Celery Worker ────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      target: production
+    container_name: skillbarter_worker
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://skillbarter:skillbarter_dev_password@postgres:5432/skillbarter_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - api
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+
+  # ── Celery Flower (monitoring UI) ────────────────────────
+  flower:
+    build:
+      context: .
+      target: production
+    container_name: skillbarter_flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+    depends_on:
+      - worker
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app flower --port=5555
+
+  # ── PostgreSQL ───────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: skillbarter_postgres
+    environment:
+      POSTGRES_USER: skillbarter
+      POSTGRES_PASSWORD: skillbarter_dev_password
+      POSTGRES_DB: skillbarter_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillbarter -d skillbarter_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: skillbarter_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+# ── Volumes ──────────────────────────────────────────────
+volumes:
+  postgres_data:
+    name: skillbarter_postgres_data
+  redis_data:
+    name: skillbarter_redis_data
