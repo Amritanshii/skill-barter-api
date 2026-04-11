@@ -50,7 +50,4 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: skillbarter-api
-          type: web
-          property: host
+        value: https://skillbarter-api-lz5k.onrender.com
