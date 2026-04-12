@@ -9,19 +9,29 @@ const URGENCY = ['low', 'medium', 'high'];
 const PROF_EMOJI = { beginner: '🌱', intermediate: '⚡', expert: '🔥' };
 const URG_EMOJI = { low: '😌', medium: '🙏', high: '🚨' };
 
+const CATEGORIES = ['programming','design','music','languages','mathematics','science','sports','cooking','arts','writing','marketing','finance','other'];
+
 function SkillAutocomplete({ onSelect, placeholder }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newCategory, setNewCategory] = useState('other');
+  const [showCreate, setShowCreate] = useState(false);
   const ref = useRef();
+  const toast = useToast();
 
   useEffect(() => {
-    if (query.length < 1) { setResults([]); return; }
+    if (query.length < 1) { setResults([]); setShowCreate(false); return; }
     setLoading(true);
     const t = setTimeout(() => {
       skillsAPI.autocomplete(query)
-        .then(r => { setResults(r.data || []); setOpen(true); })
+        .then(r => {
+          setResults(r.data || []);
+          setShowCreate(r.data?.length === 0);
+          setOpen(true);
+        })
         .finally(() => setLoading(false));
     }, 250);
     return () => clearTimeout(t);
@@ -32,6 +42,18 @@ function SkillAutocomplete({ onSelect, placeholder }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const res = await skillsAPI.create({ name: query, category: newCategory });
+      onSelect(res.data);
+      toast(`Created new skill: ${query} ✨`);
+      setOpen(false); setShowCreate(false);
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Could not create skill', 'error');
+    } finally { setCreating(false); }
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -44,7 +66,7 @@ function SkillAutocomplete({ onSelect, placeholder }) {
           : <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
         }
       </div>
-      {open && results.length > 0 && (
+      {open && (results.length > 0 || showCreate) && (
         <div className="absolute z-20 w-full mt-1 bg-white border border-violet-100 rounded-xl shadow-lg overflow-hidden">
           {results.map(skill => (
             <button key={skill.id} type="button"
@@ -53,6 +75,20 @@ function SkillAutocomplete({ onSelect, placeholder }) {
               <SkillBadge name={skill.name} category={skill.category} size="sm" />
             </button>
           ))}
+          {showCreate && query.length > 1 && (
+            <div className="border-t border-violet-100 p-3 space-y-2">
+              <p className="text-xs text-gray-500 font-medium">No results — create <span className="text-violet-600 font-bold">"{query}"</span> as a new skill:</p>
+              <select value={newCategory} onChange={e => setNewCategory(e.target.value)}
+                className="w-full text-sm border border-violet-100 rounded-lg px-3 py-1.5 outline-none focus:border-violet-400">
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <button type="button" onMouseDown={handleCreate} disabled={creating}
+                className="w-full bg-violet-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-violet-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {creating ? 'Creating…' : `Create "${query}"`}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
