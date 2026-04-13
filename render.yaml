@@ -37,7 +37,7 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
       - key: APP_ENV
-        value: production
+        value: development
       - key: CORS_ORIGINS
         value: https://skillbarter-frontend-r5k4.onrender.com
 
